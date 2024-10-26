@@ -18,6 +18,7 @@ struct context
   uint64 s10;
   uint64 s11;
 };
+#define DEFAULT_PRIORITY 50
 
 // Per-CPU state.
 struct cpu
@@ -125,5 +126,11 @@ struct proc
   struct trapframe *alarm_tf; // cache the trapframe when timer fires
   int alarm_on;
   // int creation_time; // Process creation time (added for FCFS)
+    uint s_start_time;           // When the process was last put to sleep
+    uint stime;                  // The sleeping time since it was last scheduled
+    uint wtime;
+    uint rbi;
+    uint static_priority;        // The static priority of the process
+
 };
 extern struct proc proc[NPROC];
