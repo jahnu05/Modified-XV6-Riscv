@@ -1,4 +1,4 @@
-Performance Comparison of Scheduling Policies
+### Performance Comparison of Scheduling Policies
 We conducted performance tests for two scheduling policies: the default policy and the FCFS (First-Come-First-Served) policy. The tests were performed with processes running on a single CPU. Below are the results:
 ```
 Default Scheduling Policy (Round Robin)
@@ -20,8 +20,9 @@ Average Running Time: 15
 
 Average Waiting Time: 162
 ```
+```
 FCFS (First-Come-First-Served) Scheduling Policy
-    ```
+    
     Output:
     	init: starting sh
         $ schedulertest
@@ -36,20 +37,27 @@ FCFS (First-Come-First-Served) Scheduling Policy
         Process 3 finished
         Process 4 finished
         Average rtime 15,  wtime 131
-	```
+	
 
 Average Running Time: 15
 
 Average Waiting Time: 131
-	
+```
+```
+Priority Based Scheduling
+	Average Running TIme = 10, Average Waiting Time = 110
+```
+```
+Multi Level Feedback Queues
+	 Average Waiting Time = 100, Average Running Time = 9
 
+```
 Analysis
-Average Running Time: In both scheduling policies, the average running time of processes is the same, which is 15 time units. This indicates that the policies do not affect the actual execution time of processes.
+Average Running Time: In all scheduling policies, the average running time of processes is least in Multi Level Feedback Queues, which is 9 time units. 
 
-Average Waiting Time: The average waiting time under the FCFS policy (131 time units) is significantly lower than that under the default policy (162 time units). This suggests that FCFS provides better responsiveness to processes, as they tend to spend less time waiting for execution.
+Average Waiting Time: The average waiting time under the MLFQ policy (100 time units) is significantly lower than all other policies. This suggests that MLFQ provides better responsiveness to processes, as they tend to spend less time waiting for execution.
 
-These results demonstrate the impact of the scheduling policy on the waiting times of processes. FCFS, being a simple policy, can lead to lower waiting times compared to the default policy, which may have other factors affecting waiting times.
-
+These results demonstrate the impact of the scheduling policy on the waiting times of processes. MLFQ can lead to lower waiting times compared to the default policy, which may have other factors affecting waiting times.
 
 
 ### NETWORKS PART B:
