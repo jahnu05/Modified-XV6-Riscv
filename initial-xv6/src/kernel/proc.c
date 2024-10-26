@@ -152,6 +152,11 @@ found:
   p->rtime = 0;
   p->etime = 0;
   p->ctime = ticks;
+  p->static_priority = DEFAULT_PRIORITY;
+  p->s_start_time = 0;
+  p->stime = 0;
+  p->rbi=25;
+
   return p;
 }
 
@@ -451,6 +456,129 @@ int wait(uint64 addr)
   }
 }
 
+int set_priority(uint64 priority, uint64 pid)
+{
+  struct proc *p;
+  int old_sp = -1;
+
+  for (p = proc; p < &proc[NPROC]; p++) {
+
+    // #ifdef PBS
+      if (p->pid == pid) {
+        old_sp = p->static_priority;
+        p->static_priority = priority;
+        int val;
+        int rbi = 25;
+        if (p->rtime + p->stime != 0){
+          val = (int)((((3*p->rtime)-(p->stime)-(p->wtime))/ (p->rtime + p->stime+p->wtime+1)) * DEFAULT_PRIORITY);
+           if (val>0)
+          {
+            rbi=val;
+          }
+          else
+            rbi=0;
+        }
+        int value1 = (old_sp + rbi < 100 ? old_sp + rbi : 100);
+        int dp = (0 < value1 ? value1 : 0);
+        p->rtime = 0;
+        p->stime = 0;
+
+        // New dynamic priority.
+        int value2 = (priority + rbi < 100 ? priority + rbi : 100);
+        int dp_new = (0 < value2 ? value2 : 0);
+      // printf("%d- dp\n%d - dp_new\n",dp,dp_new);
+        if (dp > dp_new)
+          yield();
+
+        break;
+      }
+    // #endif
+  }
+  return old_sp;
+}
+  #ifdef PBS
+
+void scheduler(void){
+    struct proc *p;
+  struct cpu *c = mycpu();
+
+  c->proc = 0;
+
+    for(;;){
+      // Avoid deadlock by ensuring that devices can interrupt.
+      intr_on();
+      struct proc *hpProc = 0;
+      int min_dynamic_priority = 101;
+
+      // Find the highest priority (least DP value) process.
+      for (p = proc; p < &proc[NPROC]; p++) {
+        acquire(&p->lock);
+        if (p->state == RUNNABLE) {
+        int val;
+        int rbi = 25;
+        if (p->rtime + p->stime != 0){
+          val = (int)(((3*p->rtime)-(p->stime)-(p->wtime)/ (p->rtime + p->stime+p->wtime+1)) * DEFAULT_PRIORITY);
+           if (val>0)
+          {
+            rbi=val;
+          }
+          else
+            rbi=0;
+        }
+        int value = (p->static_priority + rbi < 100 ? p->static_priority + rbi : 100);
+        int dp = (0 < value ? value : 0);
+
+        // New dynamic priority.
+          // Selecting process to run.
+          if (hpProc == 0) {
+            min_dynamic_priority = dp;
+            hpProc = p;
+          }
+          else if (dp < min_dynamic_priority) {
+            min_dynamic_priority = dp;
+            hpProc = p;
+          }
+          else if (dp == min_dynamic_priority) {
+            if (hpProc->no_of_times_scheduled < p->no_of_times_scheduled) {
+              hpProc = p;
+            }
+            else if (hpProc->no_of_times_scheduled == p->no_of_times_scheduled) {
+              if (hpProc->ctime > p->ctime) {
+               hpProc = p;
+              }
+            }
+          }
+          release(&p->lock);
+        } 
+        else{
+        release(&p->lock); 
+        }
+      }
+
+      // Schedule the selected highest-priority process.
+      if (hpProc != 0) {
+        acquire(&hpProc->lock);
+        if (hpProc->state == RUNNABLE) {
+          hpProc->no_of_times_scheduled++;
+
+          // Running the process.
+          hpProc->state = RUNNING;
+          c->proc = hpProc;
+          // printf("%d %d\n",hpProc->pid,ticks);
+          swtch(&c->context, &hpProc->context);
+          
+
+          // Process is done running.
+          c->proc = 0;
+        }  
+        release(&hpProc->lock);
+      }
+    }
+}
+
+  #endif
+
+
 // Per-CPU process scheduler.
 // Each CPU calls scheduler() after setting itself up.
 // Scheduler never returns.  It loops, doing:
@@ -622,7 +750,9 @@ void sleep(void *chan, struct spinlock *lk)
 
   // Tidy up.
   p->chan = 0;
-
+  #ifdef PBS
+    p->s_start_time = ticks;
+  #endif
   // Reacquire original lock.
   release(&p->lock);
   acquire(lk);
